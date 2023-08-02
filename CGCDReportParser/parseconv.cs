@@ -52,7 +52,7 @@ namespace CGCDReportParser
         }
 
 
-        public static async Task ConvertDocxToPdf(string docxPath)
+        public static void ConvertDocxToPdf(string docxPath)
         {
             // Escape backslashes and double quotes in the paths.
             string docxPathEscaped = docxPath.Replace("\\", "\\\\").Replace("\"", "\\\"");
@@ -79,6 +79,7 @@ namespace CGCDReportParser
             // Start Python process.
             Process process = new Process { StartInfo = processStartInfo };
             process.Start();
+            
             process.WaitForExit();
 
             // Print Python output.
@@ -91,6 +92,7 @@ namespace CGCDReportParser
             {
                 Debug.WriteLine(errors);
             }
+            
             File.Delete(docxPath);
 
         }
@@ -186,7 +188,7 @@ namespace CGCDReportParser
             {
                 newDoc.MainDocumentPart.Document.Save();
                 newDoc.Dispose();
-                await ConvertDocxToPdf(newfilename);
+                ConvertDocxToPdf(newfilename);
             }
             
             

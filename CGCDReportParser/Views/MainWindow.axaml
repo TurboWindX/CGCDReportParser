@@ -6,7 +6,7 @@
         Width="512" Height="256"
         x:Class="CGCDReportParser.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/ico.ico"
         Title="CGCDReportParser">
 
   <StackPanel>
