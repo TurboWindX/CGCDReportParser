@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CGCDReportParser.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Width="512" Height="256"
+        x:Class="CGCDReportParser.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="CGCDReportParser">
+
+  <StackPanel>
+    <TextBlock VerticalAlignment="Top" Name="Title" Text="{Binding Title}" HorizontalAlignment="Center"></TextBlock>
+    <TextBlock></TextBlock>
+
+    <Button VerticalAlignment="Top" HorizontalAlignment="Center" Content="{Binding Pyreq}" Name="Pythonreq" Click="ButtonClicked"></Button>
+    <TextBlock></TextBlock>
+    <TextBlock></TextBlock>
+
+    <Button VerticalAlignment="Top" HorizontalAlignment="Center" Content="{Binding Pickreport}" Name="Filepicker" Click="ButtonClicked"></Button>
+    <TextBlock></TextBlock>
+
+    <Button VerticalAlignment="Top" HorizontalAlignment="Center" Content="{Binding Parseconv}" Name="Fileparser" Click="ButtonClicked"></Button>
+  </StackPanel>
+</Window>
