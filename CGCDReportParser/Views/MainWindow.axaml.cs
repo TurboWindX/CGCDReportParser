@@ -22,7 +22,7 @@ namespace CGCDReportParser.Views
             }
             if (source == Fileparser)
             {
-                Parser();
+                await Parser();
             }
             if (source == Pythonreq)
             {
@@ -58,11 +58,11 @@ namespace CGCDReportParser.Views
 
         }
 
-        public void Parser()
+        public async Task Parser()
         {
             if (fpath != "")
             {
-                parseconv.SplitDocument(fpath);
+                await parseconv.SplitDocument(fpath);
             }
         }
     }
