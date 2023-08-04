@@ -21,6 +21,7 @@ namespace CGCDReportParser
                 {
                     DataContext = new MainWindowViewModel(),
                 };
+                
             }
 
             base.OnFrameworkInitializationCompleted();

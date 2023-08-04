@@ -8,101 +8,90 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Microsoft.Office.Interop.Word;
+using System.Collections.Concurrent;
+using Avalonia.Controls;
+using CGCDReportParser.ViewModels;
+using CGCDReportParser.Views;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Application = Microsoft.Office.Interop.Word.Application;
+using System.ComponentModel;
 
 namespace CGCDReportParser
 {
-    internal class parseconv
+    public class parseconv
     {
-        public static void InstallDocx2Pdf()
+        
+        public double Progress { get; set; }
+        public bool Done { get; set; }
+        public static void LibreConvert(string docxPath)
         {
-            ProcessStartInfo start = new ProcessStartInfo();
-            start.FileName = "python";
-            start.Arguments = "-m pip install docx2pdf";
-            start.UseShellExecute = false; //no system shell.
-            start.RedirectStandardOutput = true; // Any output
-            start.RedirectStandardError = true; // Any error 
-            start.CreateNoWindow = true; // Don't create a new window
+            string pdfPath = System.IO.Path.ChangeExtension(docxPath, ".pdf");
+            
 
-            using (Process process = Process.Start(start))
+            var startInfo = new ProcessStartInfo
             {
-                string stderr = process.StandardError.ReadToEnd();
-                process.WaitForExit();
-            }
-        }
-
-        public static bool IsDocx2PdfInstalled()
-        {
-            ProcessStartInfo start = new ProcessStartInfo();
-            start.FileName = "python";
-            start.Arguments = "-m pip show docx2pdf";
-            start.UseShellExecute = false; // Do not use OS shell
-            start.RedirectStandardOutput = true; // Any output, true  
-            start.RedirectStandardError = true; // Any error, true 
-            start.CreateNoWindow = true; // Don't create a new window
-
-            using (Process process = Process.Start(start))
-            {
-                using (StreamReader reader = process.StandardOutput)
-                {
-                    string result = reader.ReadToEnd(); // Read the output: if it is empty, the package is not installed
-                    process.WaitForExit();
-                    return !string.IsNullOrEmpty(result);
-                }
-            }
-        }
-
-
-        public static void ConvertDocxToPdf(string docxPath)
-        {
-            // Escape backslashes and double quotes in the paths.
-            string docxPathEscaped = docxPath.Replace("\\", "\\\\").Replace("\"", "\\\"");
-            string pdfPathEscaped = System.IO.Path.ChangeExtension(docxPath, ".pdf").Replace("\\", "\\\\").Replace("\"", "\\\"");
-
-            // Define Python script.
-            string pythonScript = $"import sys\nfrom docx2pdf import convert\nconvert(\"{docxPathEscaped}\", \"{pdfPathEscaped}\")";
-
-            // Write Python script to a temporary file.
-            string tmpPythonScriptPath = System.IO.Path.GetTempFileName() + ".py";
-            System.IO.File.WriteAllText(tmpPythonScriptPath, pythonScript);
-
-            // Setup Python process.
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = "python", // or the full path of your python interpreter
-                Arguments = tmpPythonScriptPath,
+                FileName = "soffice", // The name of the LibreOffice executable
+                Arguments = $"--headless --convert-to pdf --outdir \"{System.IO.Path.GetDirectoryName(pdfPath)}\" \"{docxPath}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
             };
 
-            // Start Python process.
-            Process process = new Process { StartInfo = processStartInfo };
+            Process process = new Process { StartInfo = startInfo };
             process.Start();
-            
+
             process.WaitForExit();
 
-            // Print Python output.
+            // Print LibreOffice output.
             string output = process.StandardOutput.ReadToEnd();
-            Debug.WriteLine(output);
-
-            // Print Python errors.
-            string errors = process.StandardError.ReadToEnd();
-            if (!string.IsNullOrEmpty(errors))
-            {
-                Debug.WriteLine(errors);
-            }
             
+
+            // Print LibreOffice errors.
+            string errors = process.StandardError.ReadToEnd();
             File.Delete(docxPath);
 
+
         }
-        public async static Task SplitDocument(string filepath)
+        public static void InteropConvertDocxToPdf(string docxPath)
         {
+            // Create a new Microsoft Word application object
+            Application word = new Application();
+
+            // C# doesn't have optional arguments so we'll need a dummy value
+            object oMissing = System.Reflection.Missing.Value;
+
+            // Get list of Word files in specified directory
+            Microsoft.Office.Interop.Word.Document doc = (Microsoft.Office.Interop.Word.Document)word.Documents.Open(docxPath, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing);
+
+            // It's time to save it as a PDF
+            string pdfPath = System.IO.Path.ChangeExtension(docxPath, ".pdf");
+            object oPDFPath = (object)pdfPath;
+            WdSaveFormat format = WdSaveFormat.wdFormatPDF;
+
+            doc.SaveAs2(ref oPDFPath, format, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing);
+
+            // Make sure everything is closed
+            doc.Close(WdSaveOptions.wdDoNotSaveChanges, oMissing, oMissing);
+            word.Quit(WdSaveOptions.wdDoNotSaveChanges, oMissing, oMissing);
+
+            File.Delete(docxPath);
+        }
+
+        public async System.Threading.Tasks.Task SplitDocumentAsync(string filepath)
+        {
+            Progress = 10;
+            Done = false;
+
             string directory = Path.GetDirectoryName(filepath);
             string filename = Path.GetFileNameWithoutExtension(filepath);
             string extension = Path.GetExtension(filepath);
             int counter = 0;
             string newfilename = Path.Combine(directory, $"{filename}_{counter}{extension}");
+            BlockingCollection<string> filenames = new BlockingCollection<string>();
 
             List<OpenXmlElement> paragraphs = null;
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filepath, true))
@@ -117,7 +106,6 @@ namespace CGCDReportParser
             foreach (var element in paragraphs)
             {
                 Paragraph para = element as Paragraph;
-
                 if (para != null)
                 {
                     ParagraphProperties paraProps = para.GetFirstChild<ParagraphProperties>();
@@ -140,10 +128,13 @@ namespace CGCDReportParser
                             {
                                 newDoc.MainDocumentPart.Document.Save();
                                 newDoc.Dispose();
-                                ConvertDocxToPdf(newfilename);
+                                filenames.Add(newfilename);
+                                Progress = Progress + 2;
+
+                                //LibreConvert(newfilename);
 
                             }
-                            
+
                             //newfilename = Path.Combine(directory, $"{filename}_{counter}{extension}");
                             newfilename = Path.Combine(directory, $"{heading4Text}{extension}");
 
@@ -188,10 +179,23 @@ namespace CGCDReportParser
             {
                 newDoc.MainDocumentPart.Document.Save();
                 newDoc.Dispose();
-                ConvertDocxToPdf(newfilename);
+                //LibreConvert(newfilename);
+                filenames.Add(newfilename);
+                Progress = Progress + 2;
+
+
             }
-            
-            
+            filenames.CompleteAdding();
+            System.Threading.Tasks.Task task = System.Threading.Tasks.Task.Run(() =>
+            {
+                foreach (string filename in filenames.GetConsumingEnumerable())
+                {
+                    LibreConvert(filename);
+                    Progress = Progress + 2;
+                }
+            });
+            await task;
+            Done = true;
 
         }
         

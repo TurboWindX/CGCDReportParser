@@ -13,7 +13,7 @@
     <TextBlock VerticalAlignment="Top" Name="Title" Text="{Binding Title}" HorizontalAlignment="Center"></TextBlock>
     <TextBlock></TextBlock>
 
-    <Button VerticalAlignment="Top" HorizontalAlignment="Center" Content="{Binding Pyreq}" Name="Pythonreq" Click="ButtonClicked"></Button>
+    <Button VerticalAlignment="Top" HorizontalAlignment="Center" Content="{Binding Deps}" Name="Deps" Click="ButtonClicked"></Button>
     <TextBlock></TextBlock>
     <TextBlock></TextBlock>
 
@@ -21,5 +21,6 @@
     <TextBlock></TextBlock>
 
     <Button VerticalAlignment="Top" HorizontalAlignment="Center" Content="{Binding Parseconv}" Name="Fileparser" Click="ButtonClicked"></Button>
+    <ProgressBar IsVisible="{Binding Visible}" VerticalAlignment="Top" Minimum="0" Maximum="100" Value="{Binding Progress}"  HorizontalAlignment="Center" Name="RunProgress"></ProgressBar>
   </StackPanel>
 </Window>
