@@ -91,7 +91,7 @@ namespace CGCDReportParser
 
         public static void AcceptRevisions(string filepath)
         {
-            string outputDir = Path.Combine(Path.GetDirectoryName(filepath), "output");
+            string outputDir = Path.Combine(Path.GetDirectoryName(filepath), "parser-output");
 
             var startInfo = new ProcessStartInfo
             {
@@ -114,7 +114,7 @@ namespace CGCDReportParser
             Progress = 10;
             Done = false;
             AcceptRevisions(filepath);
-            string directory = Path.Combine(Path.GetDirectoryName(filepath), "output");
+            string directory = Path.Combine(Path.GetDirectoryName(filepath), "parser-output");
             filepath = Path.Combine(directory, Path.GetFileName(filepath));
             string filename = Path.GetFileNameWithoutExtension(filepath);
             string extension = Path.GetExtension(filepath);
