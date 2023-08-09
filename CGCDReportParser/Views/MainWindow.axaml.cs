@@ -65,7 +65,7 @@ namespace CGCDReportParser.Views
             {
                 if (deps.IsSOfficeAvailable() == true)
                 {
-                    await PythonBox.Show(this, "LibreOffice is already seems already installed.", "Deps", PythonBox.MessageBoxButtons.Ok);
+                    await PythonBox.Show(this, "LibreOffice seems already installed.", "Deps", PythonBox.MessageBoxButtons.Ok);
                     
                 }
                 if(deps.IsSOfficeAvailable() == false)
