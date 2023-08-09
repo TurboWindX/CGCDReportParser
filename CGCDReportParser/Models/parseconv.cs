@@ -36,6 +36,12 @@ namespace CGCDReportParser
         public bool Done { get; set; }
         public static void LibreConvert(string docxPath)
         {
+            if (Path.GetFileNameWithoutExtension(docxPath).EndsWith("."))
+            {
+                string directory = Path.GetDirectoryName(docxPath);
+                string newFilename = Path.GetFileNameWithoutExtension(docxPath).TrimEnd('.') + Path.GetExtension(path);
+                docxPath = Path.Combine(directory, newFilename);
+            }
             string pdfPath = System.IO.Path.ChangeExtension(docxPath, ".pdf");
             
 
