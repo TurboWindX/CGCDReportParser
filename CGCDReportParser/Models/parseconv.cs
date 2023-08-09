@@ -39,7 +39,7 @@ namespace CGCDReportParser
             if (Path.GetFileNameWithoutExtension(docxPath).EndsWith("."))
             {
                 string directory = Path.GetDirectoryName(docxPath);
-                string newFilename = Path.GetFileNameWithoutExtension(docxPath).TrimEnd('.') + Path.GetExtension(path);
+                string newFilename = Path.GetFileNameWithoutExtension(docxPath).TrimEnd('.') + Path.GetExtension(docxPath);
                 docxPath = Path.Combine(directory, newFilename);
             }
             string pdfPath = System.IO.Path.ChangeExtension(docxPath, ".pdf");
