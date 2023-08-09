@@ -18,6 +18,14 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Application = Microsoft.Office.Interop.Word.Application;
 using System.ComponentModel;
+using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.ExtendedProperties;
+using HarfBuzzSharp;
+using Path = System.IO.Path;
+using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
+using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
+using OpenXmlPowerTools;
+
 
 namespace CGCDReportParser
 {
@@ -33,7 +41,7 @@ namespace CGCDReportParser
 
             var startInfo = new ProcessStartInfo
             {
-                FileName = "soffice", // The name of the LibreOffice executable
+                FileName = "soffice",
                 Arguments = $"--headless --convert-to pdf --outdir \"{System.IO.Path.GetDirectoryName(pdfPath)}\" \"{docxPath}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -81,14 +89,36 @@ namespace CGCDReportParser
             File.Delete(docxPath);
         }
 
+        public static void AcceptRevisions(string filepath)
+        {
+            string outputDir = Path.Combine(Path.GetDirectoryName(filepath), "output");
+
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "soffice",
+                Arguments = $"--headless --convert-to docx --outdir \"{outputDir}\" \"{filepath}\"",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+
+            Process process = new Process { StartInfo = startInfo };
+            process.Start();
+
+            process.WaitForExit();
+        }
+
         public async System.Threading.Tasks.Task SplitDocumentAsync(string filepath)
         {
             Progress = 10;
             Done = false;
-
-            string directory = Path.GetDirectoryName(filepath);
+            AcceptRevisions(filepath);
+            string directory = Path.Combine(Path.GetDirectoryName(filepath), "output");
+            filepath = Path.Combine(directory, Path.GetFileName(filepath));
             string filename = Path.GetFileNameWithoutExtension(filepath);
             string extension = Path.GetExtension(filepath);
+
             int counter = 0;
             string newfilename = Path.Combine(directory, $"{filename}_{counter}{extension}");
             BlockingCollection<string> filenames = new BlockingCollection<string>();
