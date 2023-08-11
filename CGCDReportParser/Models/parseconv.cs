@@ -25,7 +25,9 @@ using Path = System.IO.Path;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using Run = DocumentFormat.OpenXml.Wordprocessing.Run;
 using OpenXmlPowerTools;
-
+using Break = DocumentFormat.OpenXml.Wordprocessing.Break;
+using RunProperties = DocumentFormat.OpenXml.Wordprocessing.RunProperties;
+using Table = DocumentFormat.OpenXml.Wordprocessing.Table;
 
 namespace CGCDReportParser
 {
@@ -123,8 +125,111 @@ namespace CGCDReportParser
             
         }
 
-        
+        public static void RemoveBlankLastPage(WordprocessingDocument doc)
+        {
+            var body = doc.MainDocumentPart.Document.Body;
 
+            var elementsToRemove = new List<OpenXmlElement>();
+
+            bool hasContent = false;
+
+            foreach (var element in body.Elements<OpenXmlElement>().Reverse())
+            {
+                if (!hasContent)
+                {
+                    if (element is Paragraph)
+                    {
+                        var paragraph = element as Paragraph;
+                        if (string.IsNullOrWhiteSpace(paragraph.InnerText))
+                        {
+                            elementsToRemove.Add(element);
+                        }
+                        else
+                        {
+                            hasContent = true; // Found content, stop the removal process
+                        }
+                    }
+                    else if (element is Break)
+                    {
+                        elementsToRemove.Add(element);
+                    }
+                    else
+                    {
+                        hasContent = true; // Some other element type that's not a break or paragraph
+                    }
+                }
+            }
+
+            foreach (var element in elementsToRemove)
+            {
+                body.RemoveChild(element);
+            }
+        }
+        public static void ForcefullyRemoveLastPage(WordprocessingDocument doc)
+        {
+            var body = doc.MainDocumentPart.Document.Body;
+
+            // Remove trailing empty paragraphs
+            var paragraphs = body.Elements<Paragraph>().ToList();
+            for (int i = paragraphs.Count - 1; i >= 0; i--)
+            {
+                var p = paragraphs[i];
+                if (string.IsNullOrWhiteSpace(p.InnerText))
+                {
+                    p.Remove();
+                }
+                else
+                {
+                    break; // stop when you encounter the first non-empty paragraph
+                }
+            }
+
+            // Remove trailing section breaks
+            var breaks = body.Elements<SectionProperties>().ToList();
+            foreach (var breakElement in breaks)
+            {
+                breakElement.Remove();
+            }
+
+            // Handle table case
+            var lastTable = body.Elements<Table>().LastOrDefault();
+            if (lastTable != null)
+            {
+                // If there's a paragraph after the last table, set its font size to 1
+                Paragraph pAfterTable = lastTable.ElementsAfter().OfType<Paragraph>().FirstOrDefault();
+                if (pAfterTable != null)
+                {
+                    RunProperties runProps = pAfterTable.GetFirstChild<Run>().GetFirstChild<RunProperties>();
+                    if (runProps == null)
+                    {
+                        runProps = new RunProperties();
+                        pAfterTable.GetFirstChild<Run>().PrependChild<RunProperties>(runProps);
+                    }
+
+                    var sz = runProps.GetFirstChild<FontSize>();
+                    if (sz != null)
+                    {
+                        runProps.RemoveChild(sz);
+                    }
+                    runProps.Append(new FontSize() { Val = "1" }); // set font size to 1 to "hide" it
+                }
+            }
+        }
+        public static void SetAllTextSizeTo11(WordprocessingDocument doc)
+        {
+            foreach (var runProps in doc.MainDocumentPart.Document.Body.Descendants<RunProperties>())
+            {
+                // Remove existing font size if there is any
+                var sz = runProps.GetFirstChild<FontSize>();
+                if (sz != null)
+                {
+                    runProps.RemoveChild(sz);
+                }
+
+                // Set font size to 11 points (22 half-points)
+                runProps.Append(new FontSize() { Val = "22" });
+            }
+        }
         public async System.Threading.Tasks.Task SplitDocumentAsync(string filepath)
         {
             Progress = 10;
@@ -174,6 +279,10 @@ namespace CGCDReportParser
                                 // Save and close current document
                                 if (newDoc != null)
                                 {
+                                    SetAllTextSizeTo11(newDoc);
+
+                                    RemoveBlankLastPage(newDoc);
+
                                     newDoc.MainDocumentPart.Document.Save();
                                     newDoc.Dispose();
                                     filenames.Add(newfilename);
@@ -222,9 +331,13 @@ namespace CGCDReportParser
                 }
 
             }
+            SetAllTextSizeTo11(newDoc);
+
+            ForcefullyRemoveLastPage(newDoc);
             // Save and close the last document
             if (newDoc != null)
             {
+               
                 newDoc.MainDocumentPart.Document.Save();
                 newDoc.Dispose();
                 //LibreConvert(newfilename);

@@ -1,5 +1,4 @@
-﻿using avalonia_docxpdf;
-using CGCDReportParser.Models;
+﻿using CGCDReportParser.Models;
 using CGCDReportParser.Views;
 using DocumentFormat.OpenXml.Office2013.PowerPoint.Roaming;
 using ReactiveUI;
@@ -11,8 +10,6 @@ namespace CGCDReportParser.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase, INotifyPropertyChanged
     {
-
-        
         public string Title => "CGCD - Report parser and converter for Jira";
         public string Deps => "Install LibreOffice";
         public string Pickreport => "Choose report";
