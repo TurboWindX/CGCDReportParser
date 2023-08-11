@@ -31,19 +31,24 @@ namespace CGCDReportParser
 {
     public class parseconv
     {
+
         
+
         public double Progress { get; set; }
         public bool Done { get; set; }
         public static void LibreConvert(string docxPath)
         {
+            /*
             if (Path.GetFileNameWithoutExtension(docxPath).EndsWith("."))
             {
                 string directory = Path.GetDirectoryName(docxPath);
                 string newFilename = Path.GetFileNameWithoutExtension(docxPath).TrimEnd('.') + Path.GetExtension(docxPath);
                 docxPath = Path.Combine(directory, newFilename);
-            }
+            }*/
+
             string pdfPath = System.IO.Path.ChangeExtension(docxPath, ".pdf");
-            
+            Console.WriteLine(docxPath);
+            Console.WriteLine(pdfPath);
 
             var startInfo = new ProcessStartInfo
             {
@@ -97,6 +102,9 @@ namespace CGCDReportParser
 
         public static void AcceptRevisions(string filepath)
         {
+            using (WordprocessingDocument doc = WordprocessingDocument.Open(filepath, true))
+                RevisionAccepter.AcceptRevisions(doc);
+
             string outputDir = Path.Combine(Path.GetDirectoryName(filepath), "parser-output");
 
             var startInfo = new ProcessStartInfo
@@ -113,7 +121,11 @@ namespace CGCDReportParser
             process.Start();
 
             process.WaitForExit();
+
+            
         }
+
+        
 
         public async System.Threading.Tasks.Task SplitDocumentAsync(string filepath)
         {
@@ -134,13 +146,14 @@ namespace CGCDReportParser
             {
                 paragraphs = wordDoc.MainDocumentPart.Document.Body.Elements().ToList();
             }
-
+            
             WordprocessingDocument newDoc = null;
             DocumentFormat.OpenXml.Wordprocessing.Body newDocBody = null;
             int heading2Counter = 0; // Counter for Heading 2
 
             foreach (var element in paragraphs)
             {
+                //Console.WriteLine(element.ToString());
                 Paragraph para = element as Paragraph;
                 if (para != null)
                 {
@@ -148,60 +161,66 @@ namespace CGCDReportParser
 
                     if (paraProps != null)
                     {
+                        //Console.WriteLine(paraProps.ParagraphStyleId.Val.Value.ToString());
                         // Check if it's a Heading 4
-                        if (paraProps.ParagraphStyleId != null && paraProps.ParagraphStyleId.Val.Value == "Heading4")
+                        if(paraProps.ParagraphStyleId != null)
                         {
-                            string heading4Text = para.InnerText;
-
-                            // Replace any characters that are not valid in file names
-                            foreach (char c in System.IO.Path.GetInvalidFileNameChars())
+                            if (paraProps.ParagraphStyleId.Val.Value == "Heading4" || paraProps.ParagraphStyleId.Val.Value == "Titre4")
                             {
-                                heading4Text = heading4Text.Replace(c, '_');
-                            }
+                                string heading4Text = para.InnerText;
+                                //Console.WriteLine(heading4Text);
 
-                            // Save and close current document
-                            if (newDoc != null)
+                                // Replace any characters that are not valid in file names
+                                foreach (char c in System.IO.Path.GetInvalidFileNameChars())
+                                {
+                                    heading4Text = heading4Text.Replace(c, '_');
+                                }
+
+                                // Save and close current document
+                                if (newDoc != null)
+                                {
+                                    newDoc.MainDocumentPart.Document.Save();
+                                    newDoc.Dispose();
+                                    filenames.Add(newfilename);
+                                    Progress = Progress + 2;
+
+                                    //LibreConvert(newfilename);
+
+                                }
+
+                                //newfilename = Path.Combine(directory, $"{filename}_{counter}{extension}");
+                                newfilename = Path.Combine(directory, $"{heading4Text}{extension}");
+
+                                File.Copy(filepath, newfilename, true);
+
+                                newDoc = WordprocessingDocument.Open(newfilename, true);
+                                newDocBody = newDoc.MainDocumentPart.Document.Body;
+
+                                // Clear the new document
+                                newDocBody.RemoveAllChildren();
+
+                                counter++;
+                            }
+                            // If it's a Heading 3, skip it
+                            else if (paraProps.ParagraphStyleId != null && paraProps.ParagraphStyleId.Val.Value == "Heading3" || paraProps.ParagraphStyleId.Val.Value == "Titre3")
                             {
-                                newDoc.MainDocumentPart.Document.Save();
-                                newDoc.Dispose();
-                                filenames.Add(newfilename);
-                                Progress = Progress + 2;
-
-                                //LibreConvert(newfilename);
-
+                                continue;
                             }
-
-                            //newfilename = Path.Combine(directory, $"{filename}_{counter}{extension}");
-                            newfilename = Path.Combine(directory, $"{heading4Text}{extension}");
-
-                            File.Copy(filepath, newfilename, true);
-
-                            newDoc = WordprocessingDocument.Open(newfilename, true);
-                            newDocBody = newDoc.MainDocumentPart.Document.Body;
-
-                            // Clear the new document
-                            newDocBody.RemoveAllChildren();
-
-                            counter++;
-                        }
-                        // If it's a Heading 3, skip it
-                        else if (paraProps.ParagraphStyleId != null && paraProps.ParagraphStyleId.Val.Value == "Heading3")
-                        {
-                            continue;
-                        }
-                        // If it's a Heading 2, increment counter, and if it's the second Heading 2, break the loop
-                        else if (paraProps.ParagraphStyleId != null && paraProps.ParagraphStyleId.Val.Value == "Heading2")
-                        {
-                            heading2Counter++;
-
-                            if (heading2Counter == 3)
+                            // If it's a Heading 2, increment counter, and if it's the second Heading 2, break the loop
+                            else if (paraProps.ParagraphStyleId != null && paraProps.ParagraphStyleId.Val.Value == "Heading2" || paraProps.ParagraphStyleId.Val.Value == "Titre2")
                             {
-                                break;
+                                heading2Counter++;
+
+                                if (heading2Counter == 3)
+                                {
+                                    break;
+                                }
                             }
                         }
+                        
                     }
                 }
-
+                Console.WriteLine("Here1");
                 // If we have an open document, import the paragraph
                 if (newDoc != null)
                 {
@@ -209,7 +228,7 @@ namespace CGCDReportParser
                 }
 
             }
-
+            Console.WriteLine("Here2");
             // Save and close the last document
             if (newDoc != null)
             {
@@ -222,10 +241,13 @@ namespace CGCDReportParser
 
             }
             filenames.CompleteAdding();
+            Console.WriteLine("Here3");
             System.Threading.Tasks.Task task = System.Threading.Tasks.Task.Run(() =>
             {
+                Console.WriteLine("Here4");
                 foreach (string filename in filenames.GetConsumingEnumerable())
                 {
+                    Console.WriteLine(filename);
                     LibreConvert(filename);
                     Progress = Progress + 2;
                 }
