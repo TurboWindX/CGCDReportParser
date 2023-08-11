@@ -47,9 +47,7 @@ namespace CGCDReportParser
             }*/
 
             string pdfPath = System.IO.Path.ChangeExtension(docxPath, ".pdf");
-            Console.WriteLine(docxPath);
-            Console.WriteLine(pdfPath);
-
+            
             var startInfo = new ProcessStartInfo
             {
                 FileName = "soffice",
@@ -153,7 +151,6 @@ namespace CGCDReportParser
 
             foreach (var element in paragraphs)
             {
-                //Console.WriteLine(element.ToString());
                 Paragraph para = element as Paragraph;
                 if (para != null)
                 {
@@ -161,14 +158,12 @@ namespace CGCDReportParser
 
                     if (paraProps != null)
                     {
-                        //Console.WriteLine(paraProps.ParagraphStyleId.Val.Value.ToString());
                         // Check if it's a Heading 4
                         if(paraProps.ParagraphStyleId != null)
                         {
                             if (paraProps.ParagraphStyleId.Val.Value == "Heading4" || paraProps.ParagraphStyleId.Val.Value == "Titre4")
                             {
                                 string heading4Text = para.InnerText;
-                                //Console.WriteLine(heading4Text);
 
                                 // Replace any characters that are not valid in file names
                                 foreach (char c in System.IO.Path.GetInvalidFileNameChars())
@@ -220,7 +215,6 @@ namespace CGCDReportParser
                         
                     }
                 }
-                Console.WriteLine("Here1");
                 // If we have an open document, import the paragraph
                 if (newDoc != null)
                 {
@@ -228,7 +222,6 @@ namespace CGCDReportParser
                 }
 
             }
-            Console.WriteLine("Here2");
             // Save and close the last document
             if (newDoc != null)
             {
@@ -241,13 +234,10 @@ namespace CGCDReportParser
 
             }
             filenames.CompleteAdding();
-            Console.WriteLine("Here3");
             System.Threading.Tasks.Task task = System.Threading.Tasks.Task.Run(() =>
             {
-                Console.WriteLine("Here4");
                 foreach (string filename in filenames.GetConsumingEnumerable())
                 {
-                    Console.WriteLine(filename);
                     LibreConvert(filename);
                     Progress = Progress + 2;
                 }
